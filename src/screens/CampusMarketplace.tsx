@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { View, Text, FlatList, Pressable, TextInput, Dimensions, Image } from 'react-native'
+import { View, Text, FlatList, Pressable, TextInput, Dimensions, Image, Platform } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { products as initialProducts } from '../data/products'
 import type { Listing } from '../types'
@@ -15,6 +15,9 @@ const CampusMarketplace: React.FC = () => {
 
   // Header/search state
   const [query, setQuery] = useState('')
+  const [isSearching, setIsSearching] = useState(false)
+  const inputRef = useRef<TextInput>(null)
+  // Clear button should show whenever there's text in the search input
   // Data
   const [items] = useState<Listing[]>(initialProducts)
   const { ids: favoriteIds, toggle: toggleFavoriteId, isFavorite } = useFavoritesStore()
@@ -75,10 +78,40 @@ const CampusMarketplace: React.FC = () => {
       {/* Search below header */}
       <View style={{ paddingHorizontal: 12, paddingTop: 12 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 }}>
-          <Ionicons name="search-outline" size={20} color="#9ca3af" />
-          <TextInput placeholder="Search products..." placeholderTextColor="#9ca3af" value={query} onChangeText={setQuery} style={{ marginLeft: 8, flex: 1, color: '#111827' }} />
+          <Pressable onPress={() => { setIsSearching(true); inputRef.current?.focus() }}>
+            <Ionicons name="search-outline" size={20} color="#9ca3af" />
+          </Pressable>
+          <TextInput
+            ref={inputRef}
+            placeholder="Search products..."
+            placeholderTextColor="#9ca3af"
+            value={query}
+            onChangeText={setQuery}
+            onFocus={() => setIsSearching(true)}
+            onBlur={() => { if (!query) setIsSearching(false) }}
+            onSubmitEditing={() => { setIsSearching(false); inputRef.current?.blur() }}
+            returnKeyType="search"
+            style={{
+              marginLeft: 8,
+              flex: 1,
+              color: '#111827',
+              ...(Platform.OS === 'web' ? { outlineStyle: 'none' as any, outlineWidth: 0 as any } : {}),
+            }}
+          />
+          {/* Right clear (cross) icon after submitting search */}
+          {query?.length > 0 ? (
+            <Pressable
+              onPress={() => { setQuery(''); setIsSearching(false); inputRef.current?.blur() }}
+              style={{ paddingLeft: 6, paddingRight: 4 }}
+              accessibilityLabel="Clear search"
+            >
+              <Ionicons name="close-circle" size={20} color="#6b7280" />
+            </Pressable>
+          ) : null}
         </View>
       </View>
+      {/* Content area wrapper so overlay doesn't dim the search bar */}
+      <View style={{ flex: 1, position: 'relative' }}>
       <FlatList
         contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 12, paddingBottom: 80 + insets.bottom }}
         data={filtered}
@@ -91,73 +124,81 @@ const CampusMarketplace: React.FC = () => {
           </View>
         )}
         showsVerticalScrollIndicator={false}
-        ListHeaderComponent={
-          <View>
-            {/* Banners carousel */}
-            <FlatList
-              ref={bannerListRef}
-              data={banners}
-              keyExtractor={(b) => b.id}
-              renderItem={({ item }) => (
-                <Image source={{ uri: item.uri }} style={{ width: width - 24, height: 200, borderRadius: 12, backgroundColor: '#e5e7eb' }} />
-              )}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              pagingEnabled
-              onScrollToIndexFailed={() => {}}
-              ItemSeparatorComponent={() => <View style={{ width: 10 }} />}
-              contentContainerStyle={{ paddingBottom: 12 }}
-            />
-            {/* Nearby section */}
-            <View style={{ marginBottom: 12 }}>
-              <Pressable onPress={() => navigation.navigate('NearbyProducts')} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                <Text style={{ fontSize: 16, fontWeight: '700' }}>Your nearby products</Text>
-                <Ionicons name="chevron-forward" size={18} color="#6b7280" />
-              </Pressable>
+        ListHeaderComponent={(() => {
+          const showHeader = !isSearching && !query
+          if (!showHeader) return null
+          return (
+            <View>
+              {/* Banners carousel */}
               <FlatList
-                data={items.filter(i => (i.location || '').toLowerCase().includes('hostel') || (i.location || '').toLowerCase().includes('near')).slice(0, 10) || items.slice(0, 10)}
-                keyExtractor={(it) => it.id}
+                ref={bannerListRef}
+                data={banners}
+                keyExtractor={(b) => b.id}
                 renderItem={({ item }) => (
-                  <View style={{ width: 200, marginRight: 10 }}>
-                    <ProductCard item={item} isFavorite={isFavorite(item.id)} onToggleFavorite={toggleFavorite} onPress={() => navigation.navigate('ListingDetail', { id: item.id, item })} />
-                  </View>
+                  <Image source={{ uri: item.uri }} style={{ width: width - 24, height: 200, borderRadius: 12, backgroundColor: '#e5e7eb' }} />
                 )}
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingRight: 4 }}
+                pagingEnabled
+                onScrollToIndexFailed={() => {}}
+                ItemSeparatorComponent={() => <View style={{ width: 10 }} />}
+                contentContainerStyle={{ paddingBottom: 12 }}
               />
+              {/* Nearby section */}
+              <View style={{ marginBottom: 12 }}>
+                <Pressable onPress={() => navigation.navigate('NearbyProducts')} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <Text style={{ fontSize: 16, fontWeight: '700' }}>Your nearby products</Text>
+                  <Ionicons name="chevron-forward" size={18} color="#6b7280" />
+                </Pressable>
+                <FlatList
+                  data={items.filter(i => (i.location || '').toLowerCase().includes('hostel') || (i.location || '').toLowerCase().includes('near')).slice(0, 10) || items.slice(0, 10)}
+                  keyExtractor={(it) => it.id}
+                  renderItem={({ item }) => (
+                    <View style={{ width: 200, marginRight: 10 }}>
+                      <ProductCard item={item} isFavorite={isFavorite(item.id)} onToggleFavorite={toggleFavorite} onPress={() => navigation.navigate('ListingDetail', { id: item.id, item })} />
+                    </View>
+                  )}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ paddingRight: 4 }}
+                />
+              </View>
+
+              {/* Promotional banner same size as slideshow */}
+              <Image source={{ uri: BANNER_URI }} style={{ width: width - 24, height: 200, borderRadius: 12, backgroundColor: '#e5e7eb', alignSelf: 'center', marginBottom: 12 }} />
+
+              {/* Shop by categories */}
+              <View style={{ marginBottom: 8 }}>
+                <Text style={{ fontSize: 16, fontWeight: '700', marginBottom: 8 }}>Shop by categories</Text>
+                <FlatList
+                  data={categories}
+                  keyExtractor={(c:any)=>c.id}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  renderItem={({item:c}:any)=> {
+                    const q = query.trim().toLowerCase()
+                    const isActive = (!q && c.id === 'all') || q === c.id || q === c.label.toLowerCase()
+                    return (
+                      <Pressable onPress={() => setQuery(c.id === 'all' ? '' : c.label.toLowerCase())} style={{ width: 110, height: 110, borderRadius: 12, backgroundColor: isActive ? '#2563eb' : '#fff', borderWidth: 1, borderColor: isActive ? '#2563eb' : '#e5e7eb', marginRight: 10, alignItems: 'center', justifyContent: 'center' }}>
+                        <Text style={{ fontSize: 28 }}>{c.emoji}</Text>
+                        <Text style={{ marginTop: 6, fontWeight: '700', color: isActive ? '#fff' : '#111827' }}>{c.label}</Text>
+                      </Pressable>
+                    )
+                  }}
+                  contentContainerStyle={{ paddingRight: 4 }}
+                />
+              </View>
+
+              <Text style={{ color: '#6b7280', marginBottom: 8 }}>{filtered.length} products</Text>
             </View>
-
-            {/* Promotional banner same size as slideshow */}
-            <Image source={{ uri: BANNER_URI }} style={{ width: width - 24, height: 200, borderRadius: 12, backgroundColor: '#e5e7eb', alignSelf: 'center', marginBottom: 12 }} />
-
-            {/* Shop by categories */}
-            <View style={{ marginBottom: 8 }}>
-              <Text style={{ fontSize: 16, fontWeight: '700', marginBottom: 8 }}>Shop by categories</Text>
-              <FlatList
-                data={categories}
-                keyExtractor={(c:any)=>c.id}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                renderItem={({item:c}:any)=> {
-                  const q = query.trim().toLowerCase()
-                  const isActive = (!q && c.id === 'all') || q === c.id || q === c.label.toLowerCase()
-                  return (
-                    <Pressable onPress={() => setQuery(c.id === 'all' ? '' : c.label.toLowerCase())} style={{ width: 110, height: 110, borderRadius: 12, backgroundColor: isActive ? '#2563eb' : '#fff', borderWidth: 1, borderColor: isActive ? '#2563eb' : '#e5e7eb', marginRight: 10, alignItems: 'center', justifyContent: 'center' }}>
-                      <Text style={{ fontSize: 28 }}>{c.emoji}</Text>
-                      <Text style={{ marginTop: 6, fontWeight: '700', color: isActive ? '#fff' : '#111827' }}>{c.label}</Text>
-                    </Pressable>
-                  )
-                }}
-                contentContainerStyle={{ paddingRight: 4 }}
-              />
-            </View>
-
-            <Text style={{ color: '#6b7280', marginBottom: 8 }}>{filtered.length} products</Text>
-          </View>
-        }
-        
+          )
+        })()}
       />
+      {/* Dim background overlay when entering search before typing - only over content area */}
+      {isSearching ? (
+        <Pressable onPress={() => { setIsSearching(false); inputRef.current?.blur() }} style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.3)' }} />
+      ) : null}
+      </View>
 
       {/* Bottom Navigation */}
       <BottomNav currentTab="home" />
