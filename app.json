@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "NearSwap",
+    "slug": "NearSwap",
+    "version": "1.0.0",
+    "orientation": "portrait",
+  "icon": "./assets/ui.png",
+    "splash": {
+  "image": "./assets/ui.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+  "foregroundImage": "./assets/ui.png",
+        "backgroundColor": "#FFFFFF"
+      }
+    },
+    "web": {
+      "favicon": "./assets/ui.png"
+    }
+  }
+}
