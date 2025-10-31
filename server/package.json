@@ -1,12 +1,13 @@
 {
   "name": "nextswap-auth-api",
+  "type": "module",
   "private": true,
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
+    "build": "prisma generate && tsc",
     "start": "node dist/index.js",
     "prisma:gen": "prisma generate",
-    "prisma:migrate": "prisma migrate dev --name init",
+    "prisma:migrate": "prisma migrate deploy",
     "db:push:active": "node scripts/db-push-active.mjs"
   },
   "dependencies": {
