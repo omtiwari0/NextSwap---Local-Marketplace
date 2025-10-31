@@ -45,12 +45,13 @@ export interface Listing {
   condition?: 'new' | 'like-new' | 'good' | 'fair';
   originalPrice?: number;
   location?: string;
+  sold?: boolean;
 }
 
 export interface Order {
   id: string;
-  item: Listing;
-  status: 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  listing: { id: string; title: string; imageUri?: string | null } | null;
+  status: 'pending' | 'confirmed';
+  role: 'buyer' | 'seller';
   createdAt: string; // ISO string
-  total: number;
 }

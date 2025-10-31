@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, Pressable, FlatList, ActivityIndicator, Alert, Animated, TextInput, ScrollView, Switch } from 'react-native';
+import { View, Text, Pressable, FlatList, ActivityIndicator, Alert, Animated, TextInput, ScrollView, Switch, Image } from 'react-native';
+import { useAuthStore } from '../../store/authStore';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import ListingCard from '../../components/common/ListingCard';
@@ -96,6 +97,7 @@ const HomeScreen: React.FC = () => {
 
   const conditions: Array<'new' | 'like-new' | 'good' | 'fair'> = ['new', 'like-new', 'good', 'fair']
 
+  const user = useAuthStore((s: any) => s.user)
   React.useLayoutEffect(() => {
     navigation.setOptions({
       headerLeft: () => (
@@ -111,23 +113,37 @@ const HomeScreen: React.FC = () => {
             <Ionicons name="search-outline" size={22} color="#111827" />
           </Pressable>
           <Pressable
-            onPress={() => Alert.alert('Wishlist', 'Wishlist feature coming soon')}
+            onPress={() => navigation.navigate('FavoritesSoon')}
             accessibilityLabel="Wishlist"
             style={{ paddingHorizontal: 8, paddingVertical: 4 }}
           >
             <Ionicons name="heart-outline" size={22} color="#111827" />
           </Pressable>
-          <Pressable
-            onPress={() => navigation.navigate('Auth')}
-            accessibilityLabel="Account"
-            style={{ paddingHorizontal: 8, paddingVertical: 4 }}
-          >
-            <Ionicons name="person-circle-outline" size={24} color="#2563eb" />
-          </Pressable>
+          {user ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8 }}>
+              {user.photoUrl ? (
+                <Image source={{ uri: user.photoUrl }} style={{ width: 28, height: 28, borderRadius: 9999, marginRight: 8 }} />
+              ) : (
+                <Ionicons name="person-circle-outline" size={28} color="#2563eb" style={{ marginRight: 8 }} />
+              )}
+              <View>
+                <Text numberOfLines={1} style={{ fontWeight: '700', maxWidth: 140 }}>{user.name || user.email}</Text>
+                {user.phone ? <Text numberOfLines={1} style={{ color: '#6b7280', fontSize: 12 }}>{user.phone}</Text> : null}
+              </View>
+            </View>
+          ) : (
+            <Pressable
+              onPress={() => navigation.navigate('Auth')}
+              accessibilityLabel="Account"
+              style={{ paddingHorizontal: 8, paddingVertical: 4 }}
+            >
+              <Ionicons name="person-circle-outline" size={24} color="#2563eb" />
+            </Pressable>
+          )}
         </View>
       ),
     })
-  }, [navigation])
+  }, [navigation, user])
 
   if (loading) {
     return (

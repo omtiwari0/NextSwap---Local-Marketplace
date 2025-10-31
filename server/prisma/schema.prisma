@@ -1,0 +1,121 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  phone      String
+  name       String
+  photoUrl   String?
+  passwordH  String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  messages   Message[]
+  chats      ChatMember[]
+  listings   Listing[]
+  buyerOrders  Order[] @relation("buyerOrders")
+  sellerOrders Order[] @relation("sellerOrders")
+}
+
+model EmailOtp {
+  id         String   @id @default(cuid())
+  email      String
+  codeHash   String
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime @default(now())
+  name       String?
+
+  @@index([email])
+}
+
+model Chat {
+  id         String       @id @default(cuid())
+  createdAt  DateTime     @default(now())
+  members    ChatMember[]
+  messages   Message[]
+  listingId  String?
+  listing    Listing?     @relation(fields: [listingId], references: [id])
+  orders     Order[]
+}
+
+model ChatMember {
+  chatId String
+  userId String
+  role   String  @default("member")
+  lastReadAt DateTime?
+
+  chat   Chat    @relation(fields: [chatId], references: [id])
+  user   User    @relation(fields: [userId], references: [id])
+
+  @@id([chatId, userId])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  chatId    String
+  senderId  String
+  body      String
+  createdAt DateTime @default(now())
+
+  chat   Chat @relation(fields: [chatId], references: [id])
+  sender User @relation(fields: [senderId], references: [id])
+}
+
+model Listing {
+  id            String          @id @default(cuid())
+  title         String
+  category      String
+  price         Int
+  barter        Boolean         @default(false)
+  description   String
+  condition     String?
+  originalPrice Int?
+  location      String?
+  sold          Boolean         @default(false)
+  createdAt     DateTime        @default(now())
+
+  userId        String
+  user          User            @relation(fields: [userId], references: [id])
+  images        ListingImage[]
+  chats         Chat[]
+  orders        Order[]
+
+  @@index([createdAt])
+  @@index([category])
+}
+
+model ListingImage {
+  id        String   @id @default(cuid())
+  url       String
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id])
+}
+
+// Simple order record created from a chat deal
+model Order {
+  id          String   @id @default(cuid())
+  chatId      String
+  chat        Chat     @relation(fields: [chatId], references: [id])
+  listingId   String
+  listing     Listing  @relation(fields: [listingId], references: [id])
+  buyerId     String
+  buyer       User     @relation("buyerOrders", fields: [buyerId], references: [id])
+  sellerId    String
+  seller      User     @relation("sellerOrders", fields: [sellerId], references: [id])
+  status      String   // 'pending' | 'confirmed'
+  createdAt   DateTime @default(now())
+  confirmedAt DateTime?
+
+  @@index([buyerId])
+  @@index([sellerId])
+  @@index([listingId])
+  @@index([chatId])
+}

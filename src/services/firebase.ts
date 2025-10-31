@@ -38,8 +38,26 @@ export async function ensureFirebase() {
 export async function getAuthInstance() {
   await ensureFirebase()
   if (!initialized) return null
-  const { getAuth } = await import('firebase/auth')
-  return getAuth(app)
+  const { getAuth, setPersistence, browserLocalPersistence } = await import('firebase/auth')
+  const auth = getAuth(app)
+  if (Platform.OS === 'web') {
+    try { await setPersistence(auth as any, browserLocalPersistence as any) } catch {}
+  }
+  return auth
 }
 
 export default app
+
+export async function getStorageInstance() {
+  await ensureFirebase()
+  if (!initialized) return null
+  const { getStorage } = await import('firebase/storage')
+  return getStorage(app)
+}
+
+export async function getFirestoreInstance() {
+  await ensureFirebase()
+  if (!initialized) return null
+  const { getFirestore } = await import('firebase/firestore')
+  return getFirestore(app)
+}

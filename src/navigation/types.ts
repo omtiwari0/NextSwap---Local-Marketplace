@@ -6,6 +6,7 @@ export type RootStackParamList = {
   Swap: undefined;
   CreateListing: undefined;
   ListingDetail: { id: string; item?: Listing };
+  EditListing: { id: string; item?: Listing };
 };
 
 export type AuthStackParamList = {

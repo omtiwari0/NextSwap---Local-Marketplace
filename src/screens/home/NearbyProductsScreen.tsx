@@ -1,8 +1,8 @@
-import React, { useMemo } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { View, Text, FlatList, Dimensions, Pressable } from 'react-native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
-import { products as initialProducts } from '../../data/products'
-import ProductCard from '../../components/ProductCard'
+import ListingCard from '../../components/common/ListingCard'
+import { fetchListings } from '../../services/listings.service'
 import { useNavigation } from '@react-navigation/native'
 import { useFavoritesStore } from '../../store/favoritesStore'
 import { Ionicons } from '@expo/vector-icons'
@@ -14,7 +14,15 @@ const NearbyProductsScreen: React.FC = () => {
   const { width } = Dimensions.get('window')
   const CARD_WIDTH = (width - 12*2 - 8) / 2
 
-  const items = initialProducts
+  const [items, setItems] = useState<any[]>([])
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await fetchListings()
+        setItems(data)
+      } catch {}
+    })()
+  }, [])
   const nearby = useMemo(() => {
     const list = items.filter(i => (i.location || '').toLowerCase().includes('hostel') || (i.location || '').toLowerCase().includes('near'))
     return (list.length ? list : items).slice(0, 20)
@@ -36,7 +44,7 @@ const NearbyProductsScreen: React.FC = () => {
         columnWrapperStyle={{ justifyContent: 'space-between', marginBottom: 12 }}
         renderItem={({ item }) => (
           <View style={{ width: CARD_WIDTH }}>
-            <ProductCard item={item} isFavorite={isFavorite(item.id)} onToggleFavorite={() => toggle(item.id)} onPress={() => navigation.navigate('ListingDetail', { id: item.id, item })} />
+            <ListingCard item={item} onPress={() => navigation.navigate('ListingDetail', { id: item.id, item })} />
           </View>
         )}
         showsVerticalScrollIndicator={false}

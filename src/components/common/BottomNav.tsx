@@ -3,6 +3,7 @@ import { View, Text, Pressable } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useNavigation } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { useAuthStore } from '../../store/authStore'
 
 type TabId = 'home' | 'chats' | 'post' | 'favorites' | 'orders' | 'profile'
 
@@ -13,6 +14,7 @@ type Props = {
 const BottomNav: React.FC<Props> = ({ currentTab }) => {
   const navigation = useNavigation<any>()
   const insets = useSafeAreaInsets()
+  const user = useAuthStore((s:any)=>s.user)
 
   const tabs: { id: TabId; icon: string; label: string }[] = [
     { id: 'home', icon: 'home', label: 'Home' },
@@ -24,11 +26,14 @@ const BottomNav: React.FC<Props> = ({ currentTab }) => {
 
   const onPress = (id: TabId) => {
     if (id === 'home') navigation.navigate('Home')
-  if (id === 'post') navigation.navigate('CreateListing')
+  if (id === 'post') {
+    if (!user) return navigation.navigate('Auth')
+    return navigation.navigate('CreateListing')
+  }
   if (id === 'chats') navigation.navigate('ChatsSoon')
     if (id === 'favorites') navigation.navigate('FavoritesSoon')
-    if (id === 'orders') navigation.navigate('OrdersSoon')
-    if (id === 'profile') navigation.navigate('ProfileSoon')
+  if (id === 'orders') navigation.navigate('OrdersSoon')
+  if (id === 'profile') navigation.navigate('ProfileSoon')
   }
 
   return (

@@ -25,8 +25,9 @@
         "backgroundColor": "#FFFFFF"
       }
     },
-    "web": {
-      "favicon": "./assets/ui.png"
-    }
+  "web": {
+    "favicon": "./assets/ui.png",
+    "bundler": "metro"
+  }
   }
 }

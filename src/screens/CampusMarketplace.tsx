@@ -1,13 +1,14 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { View, Text, FlatList, Pressable, TextInput, Dimensions, Image, Platform } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { products as initialProducts } from '../data/products'
 import type { Listing } from '../types'
-import ProductCard from '../components/ProductCard'
+import ListingCard from '../components/common/ListingCard'
 import { useNavigation } from '@react-navigation/native'
 import BottomNav from '../components/common/BottomNav'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useFavoritesStore } from '../store/favoritesStore'
+import { fetchListings } from '../services/listings.service'
+import { useAuthStore } from '../store/authStore'
 
 const CampusMarketplace: React.FC = () => {
   const navigation = useNavigation<any>()
@@ -19,7 +20,7 @@ const CampusMarketplace: React.FC = () => {
   const inputRef = useRef<TextInput>(null)
   // Clear button should show whenever there's text in the search input
   // Data
-  const [items] = useState<Listing[]>(initialProducts)
+  const [items, setItems] = useState<Listing[]>([])
   const { ids: favoriteIds, toggle: toggleFavoriteId, isFavorite } = useFavoritesStore()
 
   // Simple banner carousel config
@@ -49,6 +50,17 @@ const CampusMarketplace: React.FC = () => {
     return () => clearInterval(id)
   }, [bannerIndex])
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await fetchListings()
+        setItems(Array.isArray(data) ? data : [])
+      } catch (e) {
+        setItems([])
+      }
+    })()
+  }, [])
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) return items
@@ -70,9 +82,12 @@ const CampusMarketplace: React.FC = () => {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f9fafb' }}>
-      {/* Blue header with title only */}
+      {/* Blue header with title and profile chip */}
       <View style={{ backgroundColor: '#2563eb', paddingHorizontal: 16, paddingTop: 6, paddingBottom: 12 }}>
-        <Text style={{ color: '#fff', fontSize: 24, fontWeight: '800' }}>NextSwap</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Text style={{ color: '#fff', fontSize: 24, fontWeight: '800' }}>NextSwap</Text>
+          <HeaderProfileChip />
+        </View>
       </View>
 
       {/* Search below header */}
@@ -120,7 +135,7 @@ const CampusMarketplace: React.FC = () => {
         columnWrapperStyle={{ justifyContent: 'space-between', marginBottom: 12 }}
         renderItem={({ item }) => (
           <View style={{ width: CARD_WIDTH }}>
-            <ProductCard item={item} isFavorite={isFavorite(item.id)} onToggleFavorite={toggleFavorite} onPress={() => navigation.navigate('ListingDetail', { id: item.id, item })} />
+            <ListingCard item={item} onPress={() => navigation.navigate('ListingDetail', { id: item.id, item })} />
           </View>
         )}
         showsVerticalScrollIndicator={false}
@@ -151,11 +166,11 @@ const CampusMarketplace: React.FC = () => {
                   <Ionicons name="chevron-forward" size={18} color="#6b7280" />
                 </Pressable>
                 <FlatList
-                  data={items.filter(i => (i.location || '').toLowerCase().includes('hostel') || (i.location || '').toLowerCase().includes('near')).slice(0, 10) || items.slice(0, 10)}
+                  data={(items.filter(i => (i.location || '').toLowerCase().includes('hostel') || (i.location || '').toLowerCase().includes('near')) || items).slice(0, 10)}
                   keyExtractor={(it) => it.id}
                   renderItem={({ item }) => (
                     <View style={{ width: 200, marginRight: 10 }}>
-                      <ProductCard item={item} isFavorite={isFavorite(item.id)} onToggleFavorite={toggleFavorite} onPress={() => navigation.navigate('ListingDetail', { id: item.id, item })} />
+                      <ListingCard item={item} onPress={() => navigation.navigate('ListingDetail', { id: item.id, item })} />
                     </View>
                   )}
                   horizontal
@@ -209,3 +224,24 @@ const CampusMarketplace: React.FC = () => {
 }
 
 export default CampusMarketplace
+
+const HeaderProfileChip: React.FC = () => {
+  const navigation = useNavigation<any>()
+  const user = useAuthStore((s: any) => s.user)
+  if (!user) {
+    return (
+      <Pressable onPress={() => navigation.navigate('Auth')} accessibilityLabel="Account" style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <Ionicons name="person-circle-outline" size={28} color="#ffffff" />
+      </Pressable>
+    )
+  }
+  return (
+    <Pressable onPress={() => navigation.navigate('ProfileSoon')} style={{ flexDirection: 'row', alignItems: 'center' }}>
+      {user.photoUrl ? (
+        <Image source={{ uri: user.photoUrl }} style={{ width: 28, height: 28, borderRadius: 9999, backgroundColor: '#93c5fd' }} />
+      ) : (
+        <Ionicons name="person-circle-outline" size={28} color="#ffffff" />
+      )}
+    </Pressable>
+  )
+}
